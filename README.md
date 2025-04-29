@@ -138,6 +138,33 @@ curl -X POST "http://localhost:8787/crawler/execute?url=https://example.com" \
 
 ---
 
+---
+
+### 4. JS-Rendered Text to Markdown (Groq)
+Convert JS-rendered page text to Markdown using Groq LLM API.
+- **GET /crawler/markdown**
+- **Query Params:**
+  - `url` (required): The page to crawl
+
+**Example:**
+```bash
+curl -X GET "http://localhost:8787/crawler/markdown?url=https://example.com"
+```
+**Response:**
+```json
+{
+  "url": "https://example.com",
+  "status": 200,
+  "timestamp": 1650465789123,
+  "markdown": "# Example Domain\n\nThis domain is for use in illustrative examples in documents."
+}
+```
+
+**Notes:**
+- This endpoint uses the Groq API to convert the extracted page text to Markdown format, following best practices for headings and spacing.
+- You must set the `GROQ_API_KEY` environment variable (e.g., in Render dashboard) for this endpoint to function.
+- If the Groq API fails, you will receive an error message in the response.
+
 ## Notes
 - Only `extractTitle` and `extractMeta` are supported for the custom execute endpoint.
 - All endpoints require the correct HTTP method and must not have a trailing slash.

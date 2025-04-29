@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { selectorExtraction, jsExtraction, executeExtraction } = require('../controllers/crawlerController');
+const { selectorExtraction, jsExtraction, executeExtraction, jsToMarkdownExtraction } = require('../controllers/crawlerController');
 
 // GET /crawler/selector
 router.get('/selector', selectorExtraction);
@@ -10,5 +10,8 @@ router.get('/js', jsExtraction);
 
 // POST /crawler/execute
 router.post('/execute', executeExtraction);
+
+// GET /crawler/markdown
+router.get('/markdown', jsToMarkdownExtraction);
 
 module.exports = router;

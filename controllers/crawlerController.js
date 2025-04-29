@@ -75,4 +75,29 @@ async function executeExtraction(req, res) {
     });
 }
 
-module.exports = { selectorExtraction, jsExtraction, executeExtraction };
+const { convertTextToMarkdown } = require('../services/groqService');
+
+// Handler for /crawler/markdown endpoint
+async function jsToMarkdownExtraction(req, res) {
+    const url = req.query.url;
+    if (!url) {
+        return res.status(400).json({ error: 'Missing url parameter' });
+    }
+    let status = 200;
+    let markdown = '';
+    try {
+        const result = await extractJSRenderedPage(url);
+        markdown = await convertTextToMarkdown(result.text);
+    } catch (err) {
+        status = 500;
+        return res.status(500).json({ error: 'Failed to crawl, extract, or convert to markdown', details: err.message });
+    }
+    res.status(200).json({
+        url,
+        status,
+        timestamp: Date.now(),
+        markdown
+    });
+}
+
+module.exports = { selectorExtraction, jsExtraction, executeExtraction, jsToMarkdownExtraction };
