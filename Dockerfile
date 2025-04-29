@@ -29,8 +29,11 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install Node dependencies (will also trigger puppeteer install)
-RUN npm install
+# Install Node dependencies (no postinstall now)
+RUN npm install --production --ignore-scripts
+
+# Explicitly download Chrome for Puppeteer (respects .puppeteerrc.cjs)
+RUN npx puppeteer browsers install chrome
 
 # Copy the rest of your app
 COPY . .
