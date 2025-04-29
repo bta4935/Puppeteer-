@@ -28,6 +28,7 @@ WORKDIR /app
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
+COPY .puppeteerrc.cjs ./
 
 # Install Node dependencies (no postinstall now)
 RUN npm install --production --ignore-scripts
