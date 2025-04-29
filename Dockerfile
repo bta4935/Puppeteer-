@@ -20,9 +20,8 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
-    chromium \
     --no-install-recommends && \
-    rm -rf /var/lib/apt/lists*
+    rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app

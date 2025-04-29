@@ -1,11 +1,11 @@
-const puppeteer = require('puppeteer-core');
+const puppeteer = require('puppeteer');
 
 // Extract elements for given selectors from a page
 async function extractElementsFromPage(url, selectors) {
     let browser;
     let elements = [];
     try {
-        browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'], executablePath: '/usr/bin/chromium' });
+        browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
         const page = (await browser.pages())[0] || await browser.newPage();
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
         for (let selector of selectors) {
@@ -43,7 +43,7 @@ async function extractElementsFromPage(url, selectors) {
 async function extractJSRenderedPage(url) {
     let browser;
     try {
-        browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'], executablePath: '/usr/bin/chromium' });
+        browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
         const page = (await browser.pages())[0] || await browser.newPage();
         await page.goto(url, { waitUntil: 'networkidle0', timeout: 20000 }); // Wait for JS to finish
         const html = await page.evaluate(() => document.documentElement.outerHTML);
@@ -60,7 +60,7 @@ async function extractJSRenderedPage(url) {
 async function executeExtractionFunction(url, fnName, args = []) {
     let browser;
     try {
-        browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'], executablePath: '/usr/bin/chromium' });
+        browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] });
         const page = (await browser.pages())[0] || await browser.newPage();
         await page.goto(url, { waitUntil: 'networkidle0', timeout: 20000 });
         let result;
