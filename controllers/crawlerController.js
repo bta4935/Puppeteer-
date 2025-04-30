@@ -140,8 +140,8 @@ async function getSitemapUrls(req, res) {
       // Nest under 'urls' key
       responsePayload.urls = groupedUrls;
     } else {
-      // No filters - return all URLs
-      responsePayload.allUrls = urls;
+      // No filters - return all URLs under 'urls' key
+      responsePayload.urls = urls;
     }
 
     res.json(responsePayload);
