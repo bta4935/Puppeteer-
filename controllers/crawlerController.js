@@ -1,4 +1,9 @@
-const { extractElementsFromPage, extractJSRenderedPage, executeExtractionFunction } = require('../services/puppeteerService');
+const { 
+  extractElementsFromPage,
+  extractJSRenderedPage,
+  executeExtractionFunction,
+  extractTextFromSelectors
+} = require('../services/puppeteerService');
 const { normalizeUrl } = require('../services/urlUtils');
 const { discoverSitemapUrls } = require('../services/sitemapService');
 const { convertTextToMarkdown } = require('../services/groqService');
@@ -80,25 +85,43 @@ async function executeExtraction(req, res) {
 
 // Handler for /crawler/markdown endpoint
 async function jsToMarkdownExtraction(req, res) {
-    const url = req.query.url;
-    if (!url) {
-        return res.status(400).json({ error: 'Missing url parameter' });
+  const url = req.query.url;
+  const method = req.query.method;
+  const selectors = req.query.selectors;
+
+  if (!url) return res.status(400).json({ error: 'Missing url parameter' });
+  if (!method || !['js', 'selector'].includes(method)) {
+    return res.status(400).json({ error: "Invalid method - use 'js' or 'selector'" });
+  }
+  if (method === 'selector' && !selectors) {
+    return res.status(400).json({ error: "Missing selectors parameter when method is 'selector'" });
+  }
+
+  try {
+    let sourceText = '';
+    if (method === 'js') {
+      const result = await extractJSRenderedPage(url);
+      sourceText = result.text;
+    } else {
+      const selectorsArray = selectors.split(',').map(s => s.trim()).filter(Boolean);
+      sourceText = await extractTextFromSelectors(url, selectorsArray);
     }
-    let status = 200;
-    let markdown = '';
-    try {
-        const result = await extractJSRenderedPage(url);
-        markdown = await convertTextToMarkdown(result.text);
-    } catch (err) {
-        status = 500;
-        return res.status(500).json({ error: 'Failed to crawl, extract, or convert to markdown', details: err.message });
-    }
-    res.status(200).json({
-        url,
-        status,
-        timestamp: Date.now(),
-        markdown
+
+    const markdown = await convertTextToMarkdown(sourceText);
+    
+    res.json({
+      url,
+      method,
+      status: 200,
+      timestamp: Date.now(),
+      markdown
     });
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to generate markdown',
+      details: err.message
+    });
+  }
 }
 
 // Handler for /crawler/sitemap endpoint

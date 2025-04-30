@@ -103,4 +103,40 @@ async function executeExtractionFunction(url, fnName, args = []) {
     }
 }
 
-module.exports = { extractElementsFromPage, extractJSRenderedPage, executeExtractionFunction };
+async function extractTextFromSelectors(url, selectorsArray) {
+  if (!selectorsArray || selectorsArray.length === 0) {
+    throw new Error("No selectors provided for extraction.");
+  }
+
+  let browser = null;
+  try {
+    const selectorString = selectorsArray.join(', ');
+    browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
+    const combinedText = await page.$$eval(selectorString, elements => {
+      return elements.map(el => el.textContent?.trim() || '')
+                     .filter(text => text)
+                     .join('\n\n');
+    });
+
+    return combinedText;
+  } catch (error) {
+    throw new Error(`Puppeteer failed to extract text from selectors: ${error.message}`);
+  } finally {
+    if (browser) await browser.close();
+  }
+}
+
+module.exports = {
+  extractElementsFromPage,
+  extractJSRenderedPage,
+  executeExtractionFunction,
+  extractTextFromSelectors
+};
