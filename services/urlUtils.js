@@ -8,21 +8,21 @@ const { URL } = require('url');
  */
 function normalizeUrl(inputUrl) {
   try {
-    // Add https:// if missing
-    if (!inputUrl.startsWith('http')) {
+    // Ensure string input
+    if (typeof inputUrl !== 'string') throw new Error('URL must be a string');
+    
+    // Trim and add protocol if missing
+    inputUrl = inputUrl.trim();
+    if (!/^https?:\/\//i.test(inputUrl)) {
       inputUrl = inputUrl.startsWith('www.') 
         ? `https://${inputUrl}` 
         : `https://www.${inputUrl}`;
     }
     
     const urlObj = new URL(inputUrl);
-    
-    // Remove www. if present (optional - comment out if you prefer to keep it)
-    let hostname = urlObj.hostname.replace(/^www\./i, '');
-    
-    return `${urlObj.protocol}//${hostname}`;
+    return `${urlObj.protocol}//${urlObj.hostname.replace(/^www\./i, '')}`;
   } catch (err) {
-    throw new Error(`Invalid URL: ${inputUrl}`);
+    throw new Error(`Invalid URL: ${inputUrl}. Reason: ${err.message}`);
   }
 }
 
