@@ -1,4 +1,7 @@
 const { extractElementsFromPage, extractJSRenderedPage, executeExtractionFunction } = require('../services/puppeteerService');
+const { normalizeUrl } = require('../services/urlUtils');
+const { discoverSitemapUrls } = require('../services/sitemapService');
+const { convertTextToMarkdown } = require('../services/groqService');
 
 // Handler for /crawler/selector endpoint
 async function selectorExtraction(req, res) {
@@ -75,8 +78,6 @@ async function executeExtraction(req, res) {
     });
 }
 
-const { convertTextToMarkdown } = require('../services/groqService');
-
 // Handler for /crawler/markdown endpoint
 async function jsToMarkdownExtraction(req, res) {
     const url = req.query.url;
@@ -100,4 +101,35 @@ async function jsToMarkdownExtraction(req, res) {
     });
 }
 
-module.exports = { selectorExtraction, jsExtraction, executeExtraction, jsToMarkdownExtraction };
+// Handler for /crawler/sitemap endpoint
+async function getSitemapUrls(req, res) {
+  try {
+    const rawUrl = req.query.url;
+    if (!rawUrl) {
+      return res.status(400).json({ error: 'Missing url parameter' });
+    }
+
+    const baseUrl = normalizeUrl(rawUrl);
+    const urls = await discoverSitemapUrls(baseUrl);
+    
+    res.json({
+      url: baseUrl,
+      status: 200,
+      timestamp: Date.now(),
+      urls: urls
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to discover sitemap',
+      details: err.message
+    });
+  }
+}
+
+module.exports = {
+  selectorExtraction,
+  jsExtraction,
+  executeExtraction,
+  jsToMarkdownExtraction,
+  getSitemapUrls
+};
