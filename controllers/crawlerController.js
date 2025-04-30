@@ -115,31 +115,36 @@ async function getSitemapUrls(req, res) {
     const urls = await discoverSitemapUrls(baseUrl);
 
     // Build response structure
-    const responseData = { 
+    const responsePayload = { 
       baseUrl,
       status: 200,
       timestamp: Date.now()
     };
 
     if (filters.length > 0) {
+      const groupedUrls = {};
+      const matchedUrls = new Set();
+      
       // Add filtered groups
       filters.forEach(filter => {
-        responseData[filter] = urls.filter(url => 
-          new URL(url).pathname.toLowerCase().includes(`/${filter.toLowerCase()}/`)
-        );
+        groupedUrls[filter] = urls.filter(url => {
+          const matches = new URL(url).pathname.toLowerCase().includes(`/${filter.toLowerCase()}/`);
+          if (matches) matchedUrls.add(url);
+          return matches;
+        });
       });
       
       // Add 'other' group
-      responseData.other = urls.filter(url => {
-        const path = new URL(url).pathname.toLowerCase();
-        return !filters.some(filter => path.includes(`/${filter.toLowerCase()}/`));
-      });
+      groupedUrls.other = urls.filter(url => !matchedUrls.has(url));
+      
+      // Nest under 'urls' key
+      responsePayload.urls = groupedUrls;
     } else {
       // No filters - return all URLs
-      responseData.allUrls = urls;
+      responsePayload.allUrls = urls;
     }
 
-    res.json(responseData);
+    res.json(responsePayload);
   } catch (err) {
     res.status(500).json({
       error: 'Failed to discover sitemap',
