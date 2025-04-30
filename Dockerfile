@@ -26,21 +26,17 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy package files
 COPY package*.json ./
-COPY .puppeteerrc.cjs ./
 
-# Install Node dependencies (no postinstall now)
-RUN npm install --production --ignore-scripts
+# Install dependencies (let Puppeteer handle Chrome installation)
+RUN npm install --production
 
-# Explicitly download Chrome for Puppeteer (respects .puppeteerrc.cjs)
-RUN npx puppeteer browsers install chrome
-
-# Copy the rest of your app
+# Copy application code
 COPY . .
 
-# Expose the port (matches your Express app)
+# Expose port
 EXPOSE 8787
 
-# Start the app
-CMD ["npm", "start"]
+# Start application
+CMD ["node", "index.js"]

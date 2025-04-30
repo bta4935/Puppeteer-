@@ -1,114 +1,104 @@
-const { withBrowser } = require('../services/browserService');
-const { 
-  extractElementsFromPage,
-  extractJSRenderedPage,
-  executeExtractionFunction,
-  extractTextFromSelectors
-} = require('../services/puppeteerService');
+const { extractElementsFromPage, extractJSRenderedPage, executeExtractionFunction } = require('../services/puppeteerService');
 const { normalizeUrl } = require('../services/urlUtils');
 const { discoverSitemapUrls } = require('../services/sitemapService');
 const { convertTextToMarkdown } = require('../services/groqService');
 
-// Unified error handler
-const handleError = (res, error, context = '') => {
-  console.error(`[Controller] Error${context}:`, error);
-  const status = error.message.includes('Missing') ? 400 : 500;
-  res.status(status).json({
-    error: `Failed${context}`,
-    details: error.message
-  });
-};
-
 // Handler for /crawler/selector endpoint
 async function selectorExtraction(req, res) {
-  try {
-    const { url, selectors = '' } = req.query;
-    if (!url || !selectors) throw new Error('Missing url or selectors');
-    
-    const elements = await extractElementsFromPage(url, selectors.split(','));
-    res.json({ 
-      url,
-      status: 200,
-      timestamp: Date.now(),
-      elements 
+    const url = req.query.url;
+    const selectors = req.query.selectors ? req.query.selectors.split(',') : [];
+    if (!url || !selectors.length) {
+        return res.status(400).json({ error: 'Missing url or selectors parameter' });
+    }
+    let status = 200;
+    let elements = [];
+    try {
+        elements = await extractElementsFromPage(url, selectors);
+    } catch (err) {
+        status = 500;
+        return res.status(500).json({ error: 'Failed to crawl or extract', details: err.message });
+    }
+    res.status(200).json({
+        url,
+        status,
+        timestamp: Date.now(),
+        elements
     });
-  } catch (error) {
-    handleError(res, error, ' during selector extraction');
-  }
 }
 
 // Handler for /crawler/js endpoint
 async function jsExtraction(req, res) {
-  try {
-    const { url } = req.query;
-    if (!url) throw new Error('Missing url');
-    
-    const { html, text } = await extractJSRenderedPage(url);
-    res.json({ 
-      url,
-      status: 200,
-      timestamp: Date.now(),
-      html,
-      text 
+    const url = req.query.url;
+    if (!url) {
+        return res.status(400).json({ error: 'Missing url parameter' });
+    }
+    let status = 200;
+    let html = '', text = '';
+    try {
+        const result = await extractJSRenderedPage(url);
+        html = result.html;
+        text = result.text;
+    } catch (err) {
+        status = 500;
+        return res.status(500).json({ error: 'Failed to crawl or extract', details: err.message });
+    }
+    res.status(200).json({
+        url,
+        status,
+        timestamp: Date.now(),
+        html,
+        text
     });
-  } catch (error) {
-    handleError(res, error, ' during JS extraction');
-  }
 }
 
 // Handler for /crawler/execute endpoint
 async function executeExtraction(req, res) {
-  try {
     const url = req.query.url;
     const { fnName, args = [] } = req.body || {};
     const allowedFns = ['extractTitle', 'extractMeta'];
-    if (!url || !fnName) throw new Error('Missing url or fnName');
-    if (!allowedFns.includes(fnName)) throw new Error('Unsupported function name. Allowed: extractTitle, extractMeta');
-    
-    const result = await executeExtractionFunction(url, fnName, args);
-    res.json({ 
-      url,
-      status: 200,
-      timestamp: Date.now(),
-      result 
+    if (!url || !fnName) {
+        return res.status(400).json({ error: 'Missing url or fnName parameter' });
+    }
+    if (!allowedFns.includes(fnName)) {
+        return res.status(400).json({ error: 'Unsupported function name. Allowed: extractTitle, extractMeta' });
+    }
+    let status = 200;
+    let result;
+    try {
+        result = await executeExtractionFunction(url, fnName, args);
+    } catch (err) {
+        status = 500;
+        return res.status(500).json({ error: 'Failed to execute extraction', details: err.message });
+    }
+    res.status(200).json({
+        url,
+        status,
+        timestamp: Date.now(),
+        result
     });
-  } catch (error) {
-    handleError(res, error, ' during execution');
-  }
 }
 
 // Handler for /crawler/markdown endpoint
 async function jsToMarkdownExtraction(req, res) {
-  try {
     const url = req.query.url;
-    const method = req.query.method;
-    const selectors = req.query.selectors;
-
-    if (!url) throw new Error('Missing url');
-    if (!method || !['js', 'selector'].includes(method)) throw new Error("Invalid method - use 'js' or 'selector'");
-    if (method === 'selector' && !selectors) throw new Error("Missing selectors parameter when method is 'selector'");
-
-    let sourceText = '';
-    if (method === 'js') {
-      const result = await extractJSRenderedPage(url);
-      sourceText = result.text;
-    } else {
-      const selectorsArray = selectors.split(',').map(s => s.trim()).filter(Boolean);
-      sourceText = await extractTextFromSelectors(url, selectorsArray);
+    if (!url) {
+        return res.status(400).json({ error: 'Missing url parameter' });
     }
-
-    const markdown = await convertTextToMarkdown(sourceText);
-    
-    res.json({
-      url,
-      method,
-      status: 200,
-      timestamp: Date.now(),
-      markdown
+    let status = 200;
+    let markdown = '';
+    try {
+        const result = await extractJSRenderedPage(url);
+        markdown = await convertTextToMarkdown(result.text);
+    } catch (err) {
+        status = 500;
+        return res.status(500).json({ error: 'Failed to crawl, extract, or convert to markdown', details: err.message });
+    }
+    res.status(200).json({
+        url,
+        status,
+        timestamp: Date.now(),
+        markdown
     });
-  } catch (error) {
-    handleError(res, error, ' during markdown extraction');
-  }
 }
 
 // Handler for /crawler/sitemap endpoint
@@ -117,7 +107,9 @@ async function getSitemapUrls(req, res) {
     const rawUrl = req.query.url;
     const filters = req.query.filter?.split(',').filter(Boolean) || [];
 
-    if (!rawUrl) throw new Error('Missing url');
+    if (!rawUrl) {
+      return res.status(400).json({ error: 'Missing url parameter' });
+    }
 
     const baseUrl = normalizeUrl(rawUrl);
     const urls = await discoverSitemapUrls(baseUrl);
@@ -161,8 +153,11 @@ async function getSitemapUrls(req, res) {
     }
 
     res.json(responsePayload);
-  } catch (error) {
-    handleError(res, error, ' during sitemap discovery');
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to discover sitemap',
+      details: err.message
+    });
   }
 }
 
