@@ -1,26 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  selectorExtraction, 
-  jsExtraction, 
-  executeExtraction,
-  jsToMarkdownExtraction,
-  getSitemapUrls
-} = require('../controllers/crawlerController');
+const crawlerController = require('../controllers/crawlerController');
 
 // GET /crawler/selector
-router.get('/selector', selectorExtraction);
+router.get('/selector', crawlerController.selectorExtraction);
 
 // GET /crawler/js
-router.get('/js', jsExtraction);
+router.get('/js', crawlerController.jsExtraction);
 
 // POST /crawler/execute
-router.post('/execute', executeExtraction);
+router.post('/execute', crawlerController.executeExtraction);
 
 // GET /crawler/markdown
-router.get('/markdown', jsToMarkdownExtraction);
+router.get('/markdown', crawlerController.jsToMarkdownExtraction);
 
 // GET /crawler/sitemap
-router.get('/sitemap', getSitemapUrls);
+router.get('/sitemap', crawlerController.getSitemapUrls);
 
 module.exports = router;

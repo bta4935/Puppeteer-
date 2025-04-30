@@ -105,19 +105,41 @@ async function jsToMarkdownExtraction(req, res) {
 async function getSitemapUrls(req, res) {
   try {
     const rawUrl = req.query.url;
+    const filters = req.query.filter?.split(',').filter(Boolean) || [];
+
     if (!rawUrl) {
       return res.status(400).json({ error: 'Missing url parameter' });
     }
 
     const baseUrl = normalizeUrl(rawUrl);
     const urls = await discoverSitemapUrls(baseUrl);
-    
-    res.json({
-      url: baseUrl,
+
+    // Build response structure
+    const responseData = { 
+      baseUrl,
       status: 200,
-      timestamp: Date.now(),
-      urls: urls
-    });
+      timestamp: Date.now()
+    };
+
+    if (filters.length > 0) {
+      // Add filtered groups
+      filters.forEach(filter => {
+        responseData[filter] = urls.filter(url => 
+          new URL(url).pathname.toLowerCase().includes(`/${filter.toLowerCase()}/`)
+        );
+      });
+      
+      // Add 'other' group
+      responseData.other = urls.filter(url => {
+        const path = new URL(url).pathname.toLowerCase();
+        return !filters.some(filter => path.includes(`/${filter.toLowerCase()}/`));
+      });
+    } else {
+      // No filters - return all URLs
+      responseData.allUrls = urls;
+    }
+
+    res.json(responseData);
   } catch (err) {
     res.status(500).json({
       error: 'Failed to discover sitemap',
