@@ -4,22 +4,6 @@
 
 A Node.js + Express API for extracting content from web pages using Puppeteer. Supports CSS selector extraction, full JavaScript-rendered content extraction, and custom extraction functions.
 
-## Folder Structure
-
-```
-/project-root
-│
-├── /controllers
-│     └── crawlerController.js
-├── /routes
-│     └── crawlerRoutes.js
-├── /services
-│     └── puppeteerService.js
-├── index.js
-├── package.json
-└── README.md
-```
-
 ## Usage
 
 1. **Install dependencies:**
@@ -138,9 +122,58 @@ curl -X POST "http://localhost:8787/crawler/execute?url=https://example.com" \
 
 ---
 
+### 4. Markdown Extraction
+Convert extracted content to Markdown format.
+- **GET /crawler/markdown**
+- **Query Params:**
+  - `url` (required): The page to crawl
+  - `method` (optional): Extraction method (`selector` or `js`)
+  - `selectors` (optional): Comma-separated CSS selectors (e.g., `h1,p,a`)
+  - `jsSnippet` (optional): Custom JavaScript snippet to execute
+
+**Selector Mode:**
+  ```
+  /crawler/markdown?url=URL&method=selector&selectors=h1,h2,p
+  ```
+  Returns clean markdown with proper heading levels (# for h1, ## for h2)
+
+**JavaScript Mode:**
+  ```
+  /crawler/markdown?url=URL&method=js&jsSnippet=return document.body.innerText
+  ```
+  Executes custom JS and converts output to markdown
+
+**Example (selector mode):**
+```bash
+curl -X GET "http://localhost:8787/crawler/markdown?url=https://example.com&method=selector&selectors=h1,h2,p"
+```
+**Response:**
+```json
+{
+  "url": "https://example.com",
+  "status": 200,
+  "timestamp": 1650465789123,
+  "markdown": "# Example Domain\n\nThis domain is for use in illustrative examples in documents."
+}
+```
+
+**Example (JavaScript mode):**
+```bash
+curl -X GET "http://localhost:8787/crawler/markdown?url=https://example.com&method=js&jsSnippet=return document.body.innerText"
+```
+**Response:**
+```json
+{
+  "url": "https://example.com",
+  "status": 200,
+  "timestamp": 1650465789123,
+  "markdown": "# Example Domain\n\nThis domain is for use in illustrative examples in documents."
+}
+```
+
 ---
 
-### 4. JS-Rendered Text to Markdown (Groq)
+### 5. JS-Rendered Text to Markdown (Groq)
 Convert JS-rendered page text to Markdown using Groq LLM API.
 - **GET /crawler/markdown**
 - **Query Params:**

@@ -161,10 +161,72 @@ async function getSitemapUrls(req, res) {
   }
 }
 
+// Handler for /crawler/get-markdown endpoint
+async function getMarkdown(req, res) {
+  const url = req.query.url;
+  const method = req.query.method || 'selector';
+  
+  if (!url) {
+    return res.status(400).json({ error: 'Missing url parameter' });
+  }
+
+  try {
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2' });
+
+    let markdown = '';
+    
+    if (method === 'selector') {
+      const selectors = req.query.selectors ? req.query.selectors.split(',') : ['h1', 'h2', 'p'];
+      
+      for (const selector of selectors) {
+        const elements = await page.$$eval(selector, nodes => 
+          nodes.map(node => {
+            const content = node.textContent.trim();
+            return selector.startsWith('h') 
+              ? `${'#'.repeat(parseInt(selector[1]))} ${content}`
+              : content;
+          }).join('\n\n')
+        );
+        markdown += elements + '\n\n';
+      }
+    } 
+    else if (method === 'js') {
+      const jsSnippet = req.query.jsSnippet || 'return document.body.innerText';
+      markdown = await page.evaluate(jsSnippet);
+      
+      // Basic cleanup for JS output
+      markdown = markdown.replace(/^\s+|\s+$/g, '')
+        .replace(/\n{3,}/g, '\n\n');
+    }
+
+    await browser.close();
+    
+    res.status(200).json({
+      url,
+      method,
+      markdown: markdown.trim(),
+      timestamp: Date.now()
+    });
+    
+  } catch (err) {
+    res.status(500).json({ 
+      error: 'Failed to extract markdown', 
+      details: err.message 
+    });
+  }
+}
+
 module.exports = {
   selectorExtraction,
   jsExtraction,
   executeExtraction,
   jsToMarkdownExtraction,
-  getSitemapUrls
+  getSitemapUrls,
+  getMarkdown
 };

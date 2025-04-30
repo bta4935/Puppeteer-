@@ -12,7 +12,7 @@ router.get('/js', crawlerController.jsExtraction);
 router.post('/execute', crawlerController.executeExtraction);
 
 // GET /crawler/markdown
-router.get('/markdown', crawlerController.jsToMarkdownExtraction);
+router.get('/markdown', crawlerController.getMarkdown);
 
 // GET /crawler/sitemap
 router.get('/sitemap', crawlerController.getSitemapUrls);
