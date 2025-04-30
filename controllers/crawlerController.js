@@ -122,25 +122,33 @@ async function getSitemapUrls(req, res) {
     };
 
     if (filters.length > 0) {
-      const groupedUrls = {};
       const matchedUrls = new Set();
+      const urlGroups = [];
       
-      // Add filtered groups
+      // Create filtered groups
       filters.forEach(filter => {
-        groupedUrls[filter] = urls.filter(url => {
+        const filteredUrls = urls.filter(url => {
           const matches = new URL(url).pathname.toLowerCase().includes(`/${filter.toLowerCase()}/`);
           if (matches) matchedUrls.add(url);
           return matches;
         });
+        
+        urlGroups.push({
+          page: filter,
+          value: filteredUrls
+        });
       });
       
       // Add 'other' group
-      groupedUrls.other = urls.filter(url => !matchedUrls.has(url));
+      const otherUrls = urls.filter(url => !matchedUrls.has(url));
+      urlGroups.push({
+        page: 'other',
+        value: otherUrls
+      });
       
-      // Nest under 'urls' key
-      responsePayload.urls = groupedUrls;
+      responsePayload.urls = urlGroups;
     } else {
-      // No filters - return all URLs under 'urls' key
+      // No filters - return all URLs
       responsePayload.urls = urls;
     }
 
